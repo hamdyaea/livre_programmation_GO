@@ -1,60 +1,37 @@
+// Developer: Hamdy Abou El Anein
+// Contact: hamdy.aea@protonmail.com
 package main
 
 import (
-    "fmt"
-    "math/rand"
-    "time"
+	"crypto/rand"
+	"fmt"
+	"math/big"
+	"os"
 )
 
-const (
-    letterBytes   = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    specialBytes  = "!@#$;?"
-    digitBytes    = "0123456789"
-    passwordLen   = 16
-    letterIdxMask = 1<<6 - 1
-    specialIdxMask = 1<<7 - 1
-    digitIdxMask = 1<<5 - 1
-)
+const passwordAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$;?0123456789"
+
+func generatePassword(n int) (string, error) {
+	if n < 1 || n > 4096 {
+		return "", fmt.Errorf("password length must be between 1 and 4096")
+	}
+	password := make([]byte, n)
+	limit := big.NewInt(int64(len(passwordAlphabet)))
+	for i := range password {
+		index, err := rand.Int(rand.Reader, limit)
+		if err != nil {
+			return "", err
+		}
+		password[i] = passwordAlphabet[index.Int64()]
+	}
+	return string(password), nil
+}
 
 func main() {
-    rand.Seed(time.Now().UnixNano())
-    password := generatePassword(passwordLen)
-    fmt.Println("Votre mot de passe est :", password)
+	password, err := generatePassword(16)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	fmt.Println(password)
 }
-
-func generatePassword(n int) string {
-    password := make([]byte, n)
-    for i, cache, remain := n-1, rand.Int63(), passwordLen; i >= 0; {
-        if remain == 0 {
-            cache, remain = rand.Int63(), passwordLen
-        }
-        if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
-            password[i] = letterBytes[idx]
-            i--
-        }
-        cache >>= 6
-        remain--
-
-        if remain == 0 {
-            cache, remain = rand.Int63(), passwordLen
-        }
-        if idx := int(cache & specialIdxMask); idx < len(specialBytes) {
-            password[i] = specialBytes[idx]
-            i--
-        }
-        cache >>= 7
-        remain--
-
-        if remain == 0 {
-            cache, remain = rand.Int63(), passwordLen
-        }
-        if idx := int(cache & digitIdxMask); idx < len(digitBytes) {
-            password[i] = digitBytes[idx]
-            i--
-        }
-        cache >>= 5
-        remain--
-    }
-    return string(password)
-}
-
